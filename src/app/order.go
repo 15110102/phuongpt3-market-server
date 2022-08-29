@@ -2,7 +2,6 @@ package app
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,10 +13,12 @@ import (
 	"time"
 
 	"github.com/15110102/phuongpt3-market-server/src/model"
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/15110102/phuongpt3-market-server/src/store"
 	"github.com/google/uuid"
 	"github.com/zpmep/hmacutil"
 )
+
+var s store.StoreIface = store.Store{}
 
 func (a App) CreateOrder(order *model.Order) (*model.OrderInThirdPartyResponse, error) {
 	//TODO: Check Valid input params
@@ -27,28 +28,21 @@ func (a App) CreateOrder(order *model.Order) (*model.OrderInThirdPartyResponse, 
 	transID := rand.Intn(1000000)
 	appTransId := fmt.Sprintf("%02d%02d%02d_%v", now.Year()%100, int(now.Month()), now.Day(), transID)
 	order.AppTransId = appTransId
+	order.Status = NEW
+	id := uuid.New()
+	order.Id = id.String()
 
-	//TODO: Move open db
-	db, err := sql.Open("mysql", MYSQL_CONNECTION_STRING)
+	_, err := s.CreateOrder(order)
 	if err != nil {
 		return nil, err
 	}
-	defer db.Close()
-
-	id := uuid.New()
-	query := fmt.Sprintf("INSERT INTO Orders VALUES ( '%s', '%s', '%s', '%s', %d, %d, '%s')", id.String(), order.AppUser, order.AppTransId, order.Item, order.CreateAt, order.TotalPrice, NEW)
-	insert, err := db.Query(query)
-
-	if err != nil {
-		panic(err.Error())
-	}
-	defer insert.Close()
 
 	orderToThirdPartyResponse, err := a.createOrderInThirdParty(order)
 	if err != nil {
 		return nil, err
 	}
 	orderToThirdPartyResponse.OrderId = id.String()
+
 	// Check latest status order
 	go func(appTransId string, orderId string) {
 		time.Sleep(15 * time.Minute)
@@ -118,20 +112,12 @@ func (a App) createOrderInThirdParty(order *model.Order) (*model.OrderInThirdPar
 
 func (a App) GetOrder(orderId string) (*model.Order, error) {
 	//TODO: Check Valid input params
-	//TODO: Move open db
-	db, err := sql.Open("mysql", MYSQL_CONNECTION_STRING)
-	if err != nil {
-		return nil, err
-	}
-	defer db.Close()
-
-	var order model.Order
-	err = db.QueryRow("SELECT * FROM Orders WHERE Id = ?", orderId).Scan(&order.Id, &order.AppUser, &order.AppTransId, &order.Item, &order.CreateAt, &order.TotalPrice, &order.Status)
+	order, err := s.GetOrder(orderId)
 	if err != nil {
 		return nil, err
 	}
 
-	return &order, nil
+	return order, nil
 }
 
 func (a App) UpdateOrderCallback(cbOrder *model.CallbackOrder) (*model.CallbackOrderResponse, error) {
@@ -152,19 +138,12 @@ func (a App) UpdateOrderCallback(cbOrder *model.CallbackOrder) (*model.CallbackO
 
 		var dataJSON map[string]interface{}
 		json.Unmarshal([]byte(dataStr), &dataJSON)
-		//TODO: Move open db
-		db, err := sql.Open("mysql", MYSQL_CONNECTION_STRING)
-		if err != nil {
-			return nil, err
-		}
-		defer db.Close()
 
-		updateQuery := fmt.Sprintf("Update Orders Set Status = '%s' Where AppTransId = '%s'", SUCCESS, dataJSON["app_trans_id"])
-		updateStatus, err := db.Query(updateQuery)
+		transId := fmt.Sprintf("%s", dataJSON["app_trans_id"])
+		_, err := s.UpdateStatusOrderByTrans(transId, SUCCESS)
 		if err != nil {
 			return nil, err
 		}
-		defer updateStatus.Close()
 		return &result, nil
 	}
 }

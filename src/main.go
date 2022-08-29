@@ -8,10 +8,15 @@ import (
 
 	"github.com/15110102/phuongpt3-market-server/src/app"
 	"github.com/15110102/phuongpt3-market-server/src/model"
+	"github.com/15110102/phuongpt3-market-server/src/store"
 	"github.com/gorilla/mux"
 )
 
+var a app.AppIface = app.App{}
+
 func main() {
+	store.InitDbConn() //DB Connection
+
 	// API routes
 	r := mux.NewRouter()
 	//Domain product
@@ -34,8 +39,7 @@ func main() {
 }
 
 func getAllProducts(w http.ResponseWriter, r *http.Request) {
-	var d app.AppIface = app.App{}
-	result, err := d.GetAllProducts()
+	result, err := a.GetAllProducts()
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -44,11 +48,10 @@ func getAllProducts(w http.ResponseWriter, r *http.Request) {
 }
 
 func getProduct(w http.ResponseWriter, r *http.Request) {
-	var d app.AppIface = app.App{}
 	vars := mux.Vars(r)
 	productId := vars["id"]
 
-	result, err := d.GetProduct(productId)
+	result, err := a.GetProduct(productId)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -57,7 +60,6 @@ func getProduct(w http.ResponseWriter, r *http.Request) {
 }
 
 func createProduct(w http.ResponseWriter, r *http.Request) {
-	var d app.AppIface = app.App{}
 	var product *model.Product
 	err := json.NewDecoder(r.Body).Decode(&product)
 	if err != nil {
@@ -65,7 +67,7 @@ func createProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := d.CreateProduct(product)
+	result, err := a.CreateProduct(product)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -74,7 +76,6 @@ func createProduct(w http.ResponseWriter, r *http.Request) {
 }
 
 func updateProduct(w http.ResponseWriter, r *http.Request) {
-	var d app.AppIface = app.App{}
 	var product *model.Product
 	err := json.NewDecoder(r.Body).Decode(&product)
 	if err != nil {
@@ -86,7 +87,7 @@ func updateProduct(w http.ResponseWriter, r *http.Request) {
 	productId := vars["id"]
 	product.Id = productId
 
-	result, err := d.UpdateProduct(product)
+	result, err := a.UpdateProduct(product)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -95,11 +96,10 @@ func updateProduct(w http.ResponseWriter, r *http.Request) {
 }
 
 func deleteProduct(w http.ResponseWriter, r *http.Request) {
-	var d app.AppIface = app.App{}
 	vars := mux.Vars(r)
 	productId := vars["id"]
 
-	result, err := d.DeleteProduct(productId)
+	result, err := a.DeleteProduct(productId)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -108,7 +108,6 @@ func deleteProduct(w http.ResponseWriter, r *http.Request) {
 }
 
 func createOrder(w http.ResponseWriter, r *http.Request) {
-	var d app.AppIface = app.App{}
 	var order *model.Order
 	err := json.NewDecoder(r.Body).Decode(&order)
 	if err != nil {
@@ -116,7 +115,7 @@ func createOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := d.CreateOrder(order)
+	result, err := a.CreateOrder(order)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -125,11 +124,10 @@ func createOrder(w http.ResponseWriter, r *http.Request) {
 }
 
 func getOrder(w http.ResponseWriter, r *http.Request) {
-	var d app.AppIface = app.App{}
 	vars := mux.Vars(r)
 	orderId := vars["id"]
 
-	result, err := d.GetOrder(orderId)
+	result, err := a.GetOrder(orderId)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -138,7 +136,6 @@ func getOrder(w http.ResponseWriter, r *http.Request) {
 }
 
 func updateOrderCallback(w http.ResponseWriter, r *http.Request) {
-	var d app.AppIface = app.App{}
 	var cbOrder *model.CallbackOrder
 	err := json.NewDecoder(r.Body).Decode(&cbOrder)
 	if err != nil {
@@ -146,7 +143,7 @@ func updateOrderCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := d.UpdateOrderCallback(cbOrder)
+	result, err := a.UpdateOrderCallback(cbOrder)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -155,11 +152,11 @@ func updateOrderCallback(w http.ResponseWriter, r *http.Request) {
 }
 
 func getOrderStatusInThirdPartyServer(w http.ResponseWriter, r *http.Request) {
-	var d app.AppIface = app.App{}
+	var a app.AppIface = app.App{}
 	vars := mux.Vars(r)
 	appTransId := vars["appTransId"]
 
-	result, err := d.GetOrderStatusInThirdPartyServer(appTransId)
+	result, err := a.GetOrderStatusInThirdPartyServer(appTransId)
 	if err != nil {
 		fmt.Println(err)
 		return

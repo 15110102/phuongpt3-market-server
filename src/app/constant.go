@@ -8,8 +8,6 @@ const (
 	KEY_2  = "kLtgPl8HHhfvMuDHPwKfgfsY4Ydm9eIz"
 )
 
-const MYSQL_CONNECTION_STRING = "root:Aa123456@tcp(localhost:3306)/market_server_db"
-
 var PRODUCTS = []model.Product{
 	{Id: "1", Name: "Macbook", Desc: "macbook pro 13 inch", CreateAt: 1661498415000, UpdateAt: 1661498415000, Price: 36000000, Image: ""},
 	{Id: "2", Name: "Iphone", Desc: "Iphone 13", CreateAt: 1661498529000, UpdateAt: 1661498529000, Price: 21000000, Image: ""},
@@ -30,4 +28,4 @@ const (
 )
 
 const DOMAIN_THIRD_PARTY = "https://sb-openapi.zalopay.vn"
-const DOMAIN_API = "https://0ee8-2401-d800-584a-6e01-a932-4ec-a885-6ca6.ap.ngrok.io"
+const DOMAIN_API = "https://7cd3-2401-d800-584a-6e01-def-f1b5-4aaa-ebaf.ap.ngrok.io"
