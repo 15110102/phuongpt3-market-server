@@ -19,37 +19,85 @@ import (
 	"github.com/zpmep/hmacutil"
 )
 
-func (a App) CreateOrder(order *model.Order) (*model.OrderToThirdPartyResponse, error) {
+func (a App) CreateOrder(order *model.Order) (*model.OrderInThirdPartyResponse, error) {
 	//TODO: Check Valid input params
+	now := time.Now()
+	timeNowMil := now.UnixNano() / int64(time.Millisecond)
+	order.CreateAt = timeNowMil
+	transID := rand.Intn(1000000)
+	appTransId := fmt.Sprintf("%02d%02d%02d_%v", now.Year()%100, int(now.Month()), now.Day(), transID)
+	order.AppTransId = appTransId
+
+	//TODO: Move open db
+	db, err := sql.Open("mysql", MYSQL_CONNECTION_STRING)
+	if err != nil {
+		return nil, err
+	}
+	defer db.Close()
+
+	id := uuid.New()
+	query := fmt.Sprintf("INSERT INTO Orders VALUES ( '%s', '%s', '%s', '%s', %d, %d, '%s')", id.String(), order.AppUser, order.AppTransId, order.Item, order.CreateAt, order.TotalPrice, NEW)
+	insert, err := db.Query(query)
+
+	if err != nil {
+		panic(err.Error())
+	}
+	defer insert.Close()
+
+	orderToThirdPartyResponse, err := a.createOrderInThirdParty(order)
+	if err != nil {
+		return nil, err
+	}
+	orderToThirdPartyResponse.OrderId = id.String()
+	// Check latest status order
+	go func(appTransId string, orderId string) {
+		time.Sleep(15 * time.Minute)
+		order, err := a.GetOrder(orderId)
+		if err != nil {
+			return
+		}
+		if order.Status == SUCCESS {
+			return
+		} else {
+			result, err := a.GetOrderStatusInThirdPartyServer(appTransId)
+			if err != nil {
+				fmt.Println("an error occurred when get order")
+				return
+			}
+			fmt.Println("Do something with this order!", result)
+			return
+		}
+	}(appTransId, orderToThirdPartyResponse.OrderId)
+
+	return orderToThirdPartyResponse, nil
+}
+
+func (a App) createOrderInThirdParty(order *model.Order) (*model.OrderInThirdPartyResponse, error) {
 	type object map[string]interface{}
 	var (
 		app_id = APP_ID
 		key1   = KEY_1
 	)
 	rand.Seed(time.Now().UnixNano())
-	transID := rand.Intn(1000000)
+	calbackUrl := fmt.Sprintf("%s/order/callback", DOMAIN_API)
 	embedData, _ := json.Marshal(object{})
 	params := make(url.Values)
 	params.Add("app_id", app_id)
 	params.Add("amount", fmt.Sprintf("%d", order.TotalPrice))
 	params.Add("app_user", order.AppUser)
+	params.Add("callback_url", calbackUrl)
 	params.Add("embed_data", string(embedData))
 	params.Add("item", order.Item)
-	params.Add("description", "PhuongPT - Payment test for the order #"+strconv.Itoa(transID))
+	params.Add("description", "PhuongPT - Payment test for the order ")
 	params.Add("bank_code", "zalopayapp")
-
-	now := time.Now()
-	timeNowMil := now.UnixNano() / int64(time.Millisecond)
-	params.Add("app_time", strconv.FormatInt(timeNowMil, 10))
-
-	appTransId := fmt.Sprintf("%02d%02d%02d_%v", now.Year()%100, int(now.Month()), now.Day(), transID)
-	fmt.Println("appTransId: ", appTransId)
-	params.Add("app_trans_id", appTransId)
+	params.Add("app_time", strconv.FormatInt(order.CreateAt, 10))
+	params.Add("app_trans_id", order.AppTransId)
 	data := fmt.Sprintf("%v|%v|%v|%v|%v|%v|%v", params.Get("app_id"), params.Get("app_trans_id"), params.Get("app_user"),
 		params.Get("amount"), params.Get("app_time"), params.Get("embed_data"), params.Get("item"))
 	params.Add("mac", hmacutil.HexStringEncode(hmacutil.SHA256, key1, data))
 
-	res, err := http.PostForm("https://sb-openapi.zalopay.vn/v2/create", params)
+	domain := fmt.Sprintf("%s/v2/create", DOMAIN_THIRD_PARTY)
+	res, err := http.PostForm(domain, params)
 	if err != nil {
 		return nil, err
 	}
@@ -60,34 +108,17 @@ func (a App) CreateOrder(order *model.Order) (*model.OrderToThirdPartyResponse, 
 		return nil, err
 	}
 
-	var orderToThirdPartyResponse *model.OrderToThirdPartyResponse
-	err = json.Unmarshal(responseData, &orderToThirdPartyResponse)
+	var orderInThirdPartyResponse *model.OrderInThirdPartyResponse
+	err = json.Unmarshal(responseData, &orderInThirdPartyResponse)
 	if err != nil {
 		return nil, err
 	}
-
-	//TODO:Cronjob check status order: GetOrderStatusInThirdPartyServer
-	db, err := sql.Open("mysql", MYSQL_CONNECTION_STRING)
-	if err != nil {
-		return nil, err
-	}
-	defer db.Close()
-
-	id := uuid.New()
-	query := fmt.Sprintf("INSERT INTO Orders VALUES ( '%s', '%s', '%s', '%s', %d, %d, '%s')", id.String(), order.AppUser, appTransId, order.Item, timeNowMil, order.TotalPrice, "New")
-	orderToThirdPartyResponse.OrderId = id.String()
-	insert, err := db.Query(query)
-
-	if err != nil {
-		panic(err.Error())
-	}
-	defer insert.Close()
-
-	return orderToThirdPartyResponse, nil
+	return orderInThirdPartyResponse, nil
 }
 
 func (a App) GetOrder(orderId string) (*model.Order, error) {
 	//TODO: Check Valid input params
+	//TODO: Move open db
 	db, err := sql.Open("mysql", MYSQL_CONNECTION_STRING)
 	if err != nil {
 		return nil, err
@@ -111,7 +142,6 @@ func (a App) UpdateOrderCallback(cbOrder *model.CallbackOrder) (*model.CallbackO
 	mac := hmacutil.HexStringEncode(hmacutil.SHA256, key2, dataStr)
 
 	var result model.CallbackOrderResponse
-	// mac := "d8d33baf449b31d7f9b94fa50d7c942c08cd4d83f28fa185557da21acb104f67"
 	if mac != requestMac {
 		result.ReturnCode = -1
 		result.ReturnMessage = "mac not equal"
@@ -120,19 +150,30 @@ func (a App) UpdateOrderCallback(cbOrder *model.CallbackOrder) (*model.CallbackO
 		result.ReturnCode = 1
 		result.ReturnMessage = "success"
 
-		// TODO: merchant cập nhật trạng thái cho đơn hàng
 		var dataJSON map[string]interface{}
 		json.Unmarshal([]byte(dataStr), &dataJSON)
-		fmt.Println("update order's status = success where app_trans_id =", dataJSON["app_trans_id"])
+		//TODO: Move open db
+		db, err := sql.Open("mysql", MYSQL_CONNECTION_STRING)
+		if err != nil {
+			return nil, err
+		}
+		defer db.Close()
 
+		updateQuery := fmt.Sprintf("Update Orders Set Status = '%s' Where AppTransId = '%s'", SUCCESS, dataJSON["app_trans_id"])
+		updateStatus, err := db.Query(updateQuery)
+		if err != nil {
+			return nil, err
+		}
+		defer updateStatus.Close()
 		return &result, nil
 	}
 }
 
 func (a App) GetOrderStatusInThirdPartyServer(appTransId string) (*model.CheckOrderStatusInThirdPartyResponse, error) {
 	//TODO: Check Valid input params
+	convertAppId, _ := strconv.Atoi(APP_ID)
 	var (
-		appID = APP_ID
+		appID = convertAppId
 		key1  = KEY_1
 		// key2       = KEY_2
 		appTransID = appTransId
@@ -144,13 +185,13 @@ func (a App) GetOrderStatusInThirdPartyServer(appTransId string) (*model.CheckOr
 		"app_trans_id": appTransID,
 		"mac":          hmacutil.HexStringEncode(hmacutil.SHA256, key1, data),
 	}
-
 	jsonStr, err := json.Marshal(params)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := http.Post("https://sb-openapi.zalopay.vn/v2/query", "application/json", bytes.NewBuffer(jsonStr))
+	domain := fmt.Sprintf("%s/v2/query", DOMAIN_THIRD_PARTY)
+	res, err := http.Post(domain, "application/json", bytes.NewBuffer(jsonStr))
 
 	if err != nil {
 		return nil, err

@@ -31,7 +31,7 @@ type OrderToThirdPartyRequest struct {
 	Address     string `json:"address"`
 }
 
-type OrderToThirdPartyResponse struct {
+type OrderInThirdPartyResponse struct {
 	OrderId          string `json:"order_id"`
 	ReturnCode       int64  `json:"return_code"`
 	ReturnMessage    string `json:"return_message"`
@@ -59,5 +59,5 @@ type CheckOrderStatusInThirdPartyResponse struct {
 	SubReturnMessage string `json:"sub_return_message"`
 	IsProcessing     bool   `json:"is_processing"`
 	Amount           int64  `json:"amount"`
-	ZpTransId        string `json:"zp_trans_id"`
+	ZpTransId        int64  `json:"zp_trans_id"`
 }

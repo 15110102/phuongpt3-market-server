@@ -3,8 +3,8 @@ package app
 import "github.com/15110102/phuongpt3-market-server/src/model"
 
 const (
-	APP_ID = "2554"
-	KEY_1  = "sdngKKJmqEMzvh5QQcdD2A9XBSKUNaYn"
+	APP_ID = "2553"
+	KEY_1  = "PcY4iZIKFCIdgZvA6ueMcMHHUbRLYjPL"
 	KEY_2  = "kLtgPl8HHhfvMuDHPwKfgfsY4Ydm9eIz"
 )
 
@@ -22,3 +22,12 @@ var PRODUCTS = []model.Product{
 	{Id: "9", Name: "Macos", Desc: "Mac os", CreateAt: 1661580592000, UpdateAt: 1661580592000, Price: 3000000, Image: ""},
 	{Id: "10", Name: "MacAir", Desc: "airpod 3", CreateAt: 1661498697000, UpdateAt: 1661498697000, Price: 25000000, Image: ""},
 }
+
+const (
+	NEW     = "new"
+	FAILED  = "failed"
+	SUCCESS = "success"
+)
+
+const DOMAIN_THIRD_PARTY = "https://sb-openapi.zalopay.vn"
+const DOMAIN_API = "https://0ee8-2401-d800-584a-6e01-a932-4ec-a885-6ca6.ap.ngrok.io"

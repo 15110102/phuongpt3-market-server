@@ -10,7 +10,7 @@ type AppIface interface {
 	CreateProduct(product *model.Product) (*model.Product, error)
 	UpdateProduct(product *model.Product) (*model.Product, error)
 	DeleteProduct(productId string) (bool, error)
-	CreateOrder(order *model.Order) (*model.OrderToThirdPartyResponse, error)
+	CreateOrder(order *model.Order) (*model.OrderInThirdPartyResponse, error)
 	GetOrder(orderId string) (*model.Order, error)
 	UpdateOrderCallback(cbOrder *model.CallbackOrder) (*model.CallbackOrderResponse, error)
 	GetOrderStatusInThirdPartyServer(appTransId string) (*model.CheckOrderStatusInThirdPartyResponse, error)
