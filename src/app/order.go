@@ -72,9 +72,10 @@ func (a App) createOrderInThirdParty(order *model.Order) (*model.OrderInThirdPar
 		app_id = APP_ID
 		key1   = KEY_1
 	)
+
 	rand.Seed(time.Now().UnixNano())
 	calbackUrl := fmt.Sprintf("%s/order/callback", DOMAIN_API)
-	embedData, _ := json.Marshal(object{})
+	embedData, _ := json.Marshal(object{"redirecturl": "http://localhost:3000"})
 	params := make(url.Values)
 	params.Add("app_id", app_id)
 	params.Add("amount", fmt.Sprintf("%d", order.TotalPrice))
