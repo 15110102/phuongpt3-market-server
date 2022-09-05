@@ -42,7 +42,7 @@ func (s Store) UpdateZpTransTokenOrderById(orderId int64, zpTransToken string) (
 
 func (s Store) GetOrder(orderId int64) (*model.Order, error) {
 	var order model.Order
-	err := db.QueryRow("SELECT * FROM Orders WHERE Id = ?", orderId).Scan(&order.Id, &order.AppUser, &order.AppTransId, &order.Item, &order.CreateAt, &order.TotalPrice, &order.Status)
+	err := db.QueryRow("SELECT * FROM Orders WHERE Id = ?", orderId).Scan(&order.Id, &order.AppUser, &order.AppTransId, &order.ZpTransToken, &order.Item, &order.CreateAt, &order.TotalPrice, &order.Status)
 	if err != nil {
 		return nil, err
 	}
