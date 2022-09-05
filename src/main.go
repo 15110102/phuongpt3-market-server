@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/15110102/phuongpt3-market-server/src/app"
 	"github.com/15110102/phuongpt3-market-server/src/model"
@@ -126,8 +127,8 @@ func createOrder(w http.ResponseWriter, r *http.Request) {
 func getOrder(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	orderId := vars["id"]
-
-	result, err := a.GetOrder(orderId)
+	intVar, _ := strconv.ParseInt(orderId, 0, 64)
+	result, err := a.GetOrder(intVar)
 	if err != nil {
 		fmt.Println(err)
 		return

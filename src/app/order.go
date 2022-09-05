@@ -25,14 +25,12 @@ func (a App) CreateOrder(order *model.Order) (*model.OrderInThirdPartyResponse, 
 	now := time.Now()
 	timeNowMil := now.UnixNano() / int64(time.Millisecond)
 	order.CreateAt = timeNowMil
-	transID := rand.Intn(1000000)
-	appTransId := fmt.Sprintf("%02d%02d%02d_%v", now.Year()%100, int(now.Month()), now.Day(), transID)
+	transId := uuid.New()
+	appTransId := fmt.Sprintf("%02d%02d%02d_%v", now.Year()%100, int(now.Month()), now.Day(), transId.String()[:len(transId.String())-5])
 	order.AppTransId = appTransId
 	order.Status = NEW
-	id := uuid.New()
-	order.Id = id.String()
 
-	_, err := s.CreateOrder(order)
+	resultDb, err := s.CreateOrder(order)
 	if err != nil {
 		return nil, err
 	}
@@ -41,10 +39,14 @@ func (a App) CreateOrder(order *model.Order) (*model.OrderInThirdPartyResponse, 
 	if err != nil {
 		return nil, err
 	}
-	orderToThirdPartyResponse.OrderId = id.String()
+	orderToThirdPartyResponse.OrderId = resultDb.Id
 
+	_, err = s.UpdateZpTransTokenOrderById(orderToThirdPartyResponse.OrderId, orderToThirdPartyResponse.ZpTransToken)
+	if err != nil {
+		return nil, err
+	}
 	// Check latest status order
-	go func(appTransId string, orderId string) {
+	go func(appTransId string, orderId int64) {
 		time.Sleep(15 * time.Minute)
 		order, err := a.GetOrder(orderId)
 		if err != nil {
@@ -111,7 +113,7 @@ func (a App) createOrderInThirdParty(order *model.Order) (*model.OrderInThirdPar
 	return orderInThirdPartyResponse, nil
 }
 
-func (a App) GetOrder(orderId string) (*model.Order, error) {
+func (a App) GetOrder(orderId int64) (*model.Order, error) {
 	//TODO: Check Valid input params
 	order, err := s.GetOrder(orderId)
 	if err != nil {

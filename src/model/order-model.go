@@ -1,13 +1,14 @@
 package model
 
 type Order struct {
-	Id         string `json:"id"`
-	AppUser    string `json:"app_user"`
-	AppTransId string `json:"app_trans_id"`
-	Item       string `json:"item"`
-	CreateAt   int64  `json:"created_at"`
-	TotalPrice int64  `json:"price"`
-	Status     string `json:"status"`
+	Id           int64  `json:"id"`
+	AppUser      string `json:"app_user"`
+	AppTransId   string `json:"app_trans_id"`
+	ZpTransToken string `json:"zp_trans_token"`
+	Item         string `json:"item"`
+	CreateAt     int64  `json:"created_at"`
+	TotalPrice   int64  `json:"price"`
+	Status       string `json:"status"`
 }
 
 type OrderToThirdPartyRequest struct {
@@ -32,7 +33,7 @@ type OrderToThirdPartyRequest struct {
 }
 
 type OrderInThirdPartyResponse struct {
-	OrderId          string `json:"order_id"`
+	OrderId          int64  `json:"order_id"`
 	ReturnCode       int64  `json:"return_code"`
 	ReturnMessage    string `json:"return_message"`
 	SubReturnCode    int64  `json:"sub_return_code"`

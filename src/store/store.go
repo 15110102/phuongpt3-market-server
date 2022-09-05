@@ -10,9 +10,10 @@ import (
 
 type Store struct{}
 type StoreIface interface {
-	CreateOrder(order *model.Order) (bool, error)
-	GetOrder(orderId string) (*model.Order, error)
+	CreateOrder(order *model.Order) (*model.Order, error)
+	GetOrder(orderId int64) (*model.Order, error)
 	UpdateStatusOrderByTrans(transId string, status string) (bool, error)
+	UpdateZpTransTokenOrderById(orderId int64, zpTransToken string) (bool, error)
 }
 
 var db *sql.DB

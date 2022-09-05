@@ -28,4 +28,4 @@ const (
 )
 
 const DOMAIN_THIRD_PARTY = "https://sb-openapi.zalopay.vn"
-const DOMAIN_API = "https://7506-2402-800-63ba-f354-702b-7597-d33b-ed0.ap.ngrok.io"
+const DOMAIN_API = "https://dd0c-2401-d800-7a7d-daaa-5437-cf0f-5216-3f01.ap.ngrok.io"
