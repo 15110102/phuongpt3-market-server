@@ -62,3 +62,16 @@ type CheckOrderStatusInThirdPartyResponse struct {
 	Amount           int64  `json:"amount"`
 	ZpTransId        int64  `json:"zp_trans_id"`
 }
+
+type SearchOrders struct {
+	Limit    int64  `json:"limit"`
+	Offset   int64  `json:"offset"`
+	FromDate int64  `json:"from_date"`
+	ToDate   int64  `json:"to_date"`
+	Status   string `json:"status"`
+}
+
+type SearchOrdersResponse struct {
+	Total int64    `json:"total"`
+	Data  []*Order `json:"data"`
+}

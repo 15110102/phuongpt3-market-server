@@ -32,6 +32,7 @@ func main() {
 	r.HandleFunc("/order/callback", updateOrderCallback).Methods("POST")                              //API will call by ThirdPartyServer
 	r.HandleFunc("/order/app-trans-id/{appTransId}", getOrderStatusInThirdPartyServer).Methods("GET") //--> Need remove and replace by cronjob
 	r.HandleFunc("/order/{id}", getOrder).Methods("GET")                                              //--> Using by timmer in Merchant client
+	r.HandleFunc("/orders/search", searchOrders).Methods("GET")
 
 	http.Handle("/", r)
 	port := ":5000"
@@ -129,6 +130,36 @@ func getOrder(w http.ResponseWriter, r *http.Request) {
 	orderId := vars["id"]
 	intVar, _ := strconv.ParseInt(orderId, 0, 64)
 	result, err := a.GetOrder(intVar)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	json.NewEncoder(w).Encode(result)
+}
+
+func searchOrders(w http.ResponseWriter, r *http.Request) {
+	var (
+		query    = r.URL.Query()
+		limit    = query.Get("limit")
+		offset   = query.Get("offset")
+		fromDate = query.Get("from_date")
+		toDate   = query.Get("to_date")
+		status   = query.Get("status")
+	)
+	intLimit, _ := strconv.ParseInt(limit, 0, 64)
+	intOffset, _ := strconv.ParseInt(offset, 0, 64)
+	intFromDate, _ := strconv.ParseInt(fromDate, 0, 64)
+	intToDate, _ := strconv.ParseInt(toDate, 0, 64)
+
+	//TODO: Check valid query params
+	querySearch := &model.SearchOrders{
+		Limit:    intLimit,
+		Offset:   intOffset,
+		FromDate: intFromDate,
+		ToDate:   intToDate,
+		Status:   status,
+	}
+	result, err := a.SearchOrders(querySearch)
 	if err != nil {
 		fmt.Println(err)
 		return

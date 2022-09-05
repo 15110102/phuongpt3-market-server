@@ -215,3 +215,12 @@ func (a App) GetOrderStatusInThirdPartyServer(appTransId string) (*model.CheckOr
 
 	return orderStatus, err
 }
+
+func (a App) SearchOrders(searchOrders *model.SearchOrders) (*model.SearchOrdersResponse, error) {
+	orders, err := s.SearchOrders(searchOrders)
+	if err != nil {
+		return nil, err
+	}
+
+	return orders, nil
+}

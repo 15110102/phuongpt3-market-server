@@ -12,6 +12,7 @@ type Store struct{}
 type StoreIface interface {
 	CreateOrder(order *model.Order) (*model.Order, error)
 	GetOrder(orderId int64) (*model.Order, error)
+	SearchOrders(searchOrders *model.SearchOrders) (*model.SearchOrdersResponse, error)
 	UpdateStatusOrderByTrans(transId string, status string) (bool, error)
 	UpdateZpTransTokenOrderById(orderId int64, zpTransToken string) (bool, error)
 }
