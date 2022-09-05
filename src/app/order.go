@@ -45,23 +45,49 @@ func (a App) CreateOrder(order *model.Order) (*model.OrderInThirdPartyResponse, 
 	if err != nil {
 		return nil, err
 	}
-	// Check latest status order
-	go func(appTransId string, orderId int64) {
+
+	// Loop check status order every 5s and end check after 15m or give callback from third party server
+	timeLoop := time.NewTicker(5 * time.Second)
+	mychannel := make(chan bool)
+	go func() {
 		time.Sleep(15 * time.Minute)
-		order, err := a.GetOrder(orderId)
-		if err != nil {
-			return
-		}
-		if order.Status == SUCCESS {
-			return
-		} else {
-			result, err := a.GetOrderStatusInThirdPartyServer(appTransId)
-			if err != nil {
-				fmt.Println("an error occurred when get order")
+		mychannel <- true
+	}()
+
+	go func(appTransId string, orderId int64) {
+		for {
+			select {
+			//End after 15m
+			case <-mychannel:
 				return
+			//Loop every 5s
+			case <-timeLoop.C:
+				order, err := a.GetOrder(orderId)
+				if err != nil {
+					fmt.Println("Get order fail!")
+					return
+				}
+				if order.Status == SUCCESS {
+					fmt.Println("Callback success!")
+					return
+				} else {
+					result, err := a.GetOrderStatusInThirdPartyServer(appTransId)
+					if err != nil {
+						fmt.Println("Get order in third party fail!")
+						return
+					}
+					//reupdate status order if third party server missing callback
+					if result.ReturnCode == 1 {
+						_, err := s.UpdateStatusOrderByTrans(appTransId, SUCCESS)
+						if err != nil {
+							fmt.Println("Update order fail!")
+							return
+						}
+						fmt.Println("Reupdate status order success!")
+						return
+					}
+				}
 			}
-			fmt.Println("Do something with this order!", result)
-			return
 		}
 	}(appTransId, orderToThirdPartyResponse.OrderId)
 
