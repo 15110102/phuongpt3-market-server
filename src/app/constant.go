@@ -27,5 +27,6 @@ const (
 	SUCCESS = "success"
 )
 
+const DOMAIN_CLIENT = "http://localhost:3000"
 const DOMAIN_THIRD_PARTY = "https://sb-openapi.zalopay.vn"
-const DOMAIN_API = "https://dd0c-2401-d800-7a7d-daaa-5437-cf0f-5216-3f01.ap.ngrok.io"
+const DOMAIN_API = "https://7d9a-2401-d800-bb7e-d46a-c96a-1274-68f2-e4c9.ap.ngrok.io"

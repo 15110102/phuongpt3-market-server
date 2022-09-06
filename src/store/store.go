@@ -24,10 +24,12 @@ func InitDbConn() {
 	db, err = sql.Open("mysql", MYSQL_CONNECTION_STRING)
 	if err != nil {
 		fmt.Println(err)
+		return
 	}
 
 	pingErr := db.Ping()
 	if pingErr != nil {
 		fmt.Println(err)
+		return
 	}
 }

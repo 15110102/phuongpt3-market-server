@@ -32,58 +32,73 @@ func (a App) CreateOrder(order *model.Order) (*model.OrderInThirdPartyResponse, 
 
 	resultDb, err := s.CreateOrder(order)
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 
 	orderToThirdPartyResponse, err := a.createOrderInThirdParty(order)
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 	orderToThirdPartyResponse.OrderId = resultDb.Id
 
 	_, err = s.UpdateZpTransTokenOrderById(orderToThirdPartyResponse.OrderId, orderToThirdPartyResponse.ZpTransToken)
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 
 	// Loop check status order every 5s and end check after 15m or give callback from third party server
 	timeLoop := time.NewTicker(5 * time.Second)
-	mychannel := make(chan bool)
+	endTrackOrder := make(chan bool)
 	go func() {
 		time.Sleep(15 * time.Minute)
-		mychannel <- true
+		endTrackOrder <- true
 	}()
 
 	go func(appTransId string, orderId int64) {
 		for {
 			select {
 			//End after 15m
-			case <-mychannel:
-				return
+			case <-endTrackOrder:
+				order, err := a.GetOrder(orderId)
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+				if order.Status == SUCCESS {
+					return
+				} else {
+					_, err := s.UpdateStatusOrderByTrans(appTransId, FAILED)
+					if err != nil {
+						fmt.Println(err)
+						return
+					}
+					return
+				}
 			//Loop every 5s
 			case <-timeLoop.C:
 				order, err := a.GetOrder(orderId)
 				if err != nil {
-					fmt.Println("Get order fail!")
+					fmt.Println(err)
 					return
 				}
 				if order.Status == SUCCESS {
-					fmt.Println("Callback success!")
 					return
 				} else {
 					result, err := a.GetOrderStatusInThirdPartyServer(appTransId)
 					if err != nil {
-						fmt.Println("Get order in third party fail!")
+						fmt.Println(err)
 						return
 					}
 					//reupdate status order if third party server missing callback
 					if result.ReturnCode == 1 {
 						_, err := s.UpdateStatusOrderByTrans(appTransId, SUCCESS)
 						if err != nil {
-							fmt.Println("Update order fail!")
+							fmt.Println(err)
 							return
 						}
-						fmt.Println("Reupdate status order success!")
 						return
 					}
 				}
@@ -103,7 +118,7 @@ func (a App) createOrderInThirdParty(order *model.Order) (*model.OrderInThirdPar
 
 	rand.Seed(time.Now().UnixNano())
 	calbackUrl := fmt.Sprintf("%s/order/callback", DOMAIN_API)
-	embedData, _ := json.Marshal(object{"redirecturl": "http://localhost:3000"})
+	embedData, _ := json.Marshal(object{"redirecturl": DOMAIN_CLIENT})
 	params := make(url.Values)
 	params.Add("app_id", app_id)
 	params.Add("amount", fmt.Sprintf("%d", order.TotalPrice))
@@ -122,18 +137,21 @@ func (a App) createOrderInThirdParty(order *model.Order) (*model.OrderInThirdPar
 	domain := fmt.Sprintf("%s/v2/create", DOMAIN_THIRD_PARTY)
 	res, err := http.PostForm(domain, params)
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 	defer res.Body.Close()
 
 	responseData, err := io.ReadAll(res.Body)
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 
 	var orderInThirdPartyResponse *model.OrderInThirdPartyResponse
 	err = json.Unmarshal(responseData, &orderInThirdPartyResponse)
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 	return orderInThirdPartyResponse, nil
@@ -143,6 +161,7 @@ func (a App) GetOrder(orderId int64) (*model.Order, error) {
 	//TODO: Check Valid input params
 	order, err := s.GetOrder(orderId)
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 
@@ -171,6 +190,7 @@ func (a App) UpdateOrderCallback(cbOrder *model.CallbackOrder) (*model.CallbackO
 		transId := fmt.Sprintf("%s", dataJSON["app_trans_id"])
 		_, err := s.UpdateStatusOrderByTrans(transId, SUCCESS)
 		if err != nil {
+			fmt.Println(err)
 			return nil, err
 		}
 		return &result, nil
@@ -195,6 +215,7 @@ func (a App) GetOrderStatusInThirdPartyServer(appTransId string) (*model.CheckOr
 	}
 	jsonStr, err := json.Marshal(params)
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 
@@ -202,6 +223,7 @@ func (a App) GetOrderStatusInThirdPartyServer(appTransId string) (*model.CheckOr
 	res, err := http.Post(domain, "application/json", bytes.NewBuffer(jsonStr))
 
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 	defer res.Body.Close()
@@ -210,6 +232,7 @@ func (a App) GetOrderStatusInThirdPartyServer(appTransId string) (*model.CheckOr
 	var orderStatus *model.CheckOrderStatusInThirdPartyResponse
 	err = json.Unmarshal(responseData, &orderStatus)
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 
@@ -219,6 +242,7 @@ func (a App) GetOrderStatusInThirdPartyServer(appTransId string) (*model.CheckOr
 func (a App) SearchOrders(searchOrders *model.SearchOrders) (*model.SearchOrdersResponse, error) {
 	orders, err := s.SearchOrders(searchOrders)
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 

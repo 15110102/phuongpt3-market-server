@@ -10,10 +10,12 @@ func (s Store) CreateOrder(order *model.Order) (*model.Order, error) {
 	query := fmt.Sprintf("INSERT INTO Orders(AppUser, AppTransId, ZpTransToken, Item, CreateAt, TotalPrice, Status) VALUES ('%s', '%s','%s', '%s', %d, %d, '%s');", order.AppUser, order.AppTransId, "", order.Item, order.CreateAt, order.TotalPrice, order.Status)
 	res, err := db.Exec(query)
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 	id, err := res.LastInsertId()
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 	order.Id = id
@@ -24,6 +26,7 @@ func (s Store) UpdateStatusOrderByTrans(transId string, status string) (bool, er
 	updateQuery := fmt.Sprintf("Update Orders Set Status = '%s' Where AppTransId = '%s'", status, transId)
 	updateStatus, err := db.Query(updateQuery)
 	if err != nil {
+		fmt.Println(err)
 		return false, err
 	}
 	defer updateStatus.Close()
@@ -34,6 +37,7 @@ func (s Store) UpdateZpTransTokenOrderById(orderId int64, zpTransToken string) (
 	updateQuery := fmt.Sprintf("Update Orders Set ZpTransToken = '%s' Where Id = %d", zpTransToken, orderId)
 	updateZpTransToken, err := db.Query(updateQuery)
 	if err != nil {
+		fmt.Println(err)
 		return false, err
 	}
 	defer updateZpTransToken.Close()
@@ -44,6 +48,7 @@ func (s Store) GetOrder(orderId int64) (*model.Order, error) {
 	var order model.Order
 	err := db.QueryRow("SELECT * FROM Orders WHERE Id = ?", orderId).Scan(&order.Id, &order.AppUser, &order.AppTransId, &order.ZpTransToken, &order.Item, &order.CreateAt, &order.TotalPrice, &order.Status)
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 	return &order, nil
@@ -91,11 +96,13 @@ func (s Store) SearchOrders(searchOrders *model.SearchOrders) (*model.SearchOrde
 	var count int64
 	err := db.QueryRow(queryCout).Scan(&count)
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 
 	rows, err := db.Query(query)
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -104,11 +111,13 @@ func (s Store) SearchOrders(searchOrders *model.SearchOrders) (*model.SearchOrde
 	for rows.Next() {
 		var order model.Order
 		if err := rows.Scan(&order.Id, &order.AppUser, &order.AppTransId, &order.ZpTransToken, &order.Item, &order.CreateAt, &order.TotalPrice, &order.Status); err != nil {
+			fmt.Println(err)
 			return nil, err
 		}
 		orders = append(orders, &order)
 	}
 	if err = rows.Err(); err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 	result := model.SearchOrdersResponse{
