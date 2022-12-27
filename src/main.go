@@ -35,7 +35,7 @@ func main() {
 	r.HandleFunc("/orders/search", searchOrders).Methods("GET")
 
 	http.Handle("/", r)
-	port := ":5000"
+	port := ":6789"
 	fmt.Println("Server is running on port" + port)
 	log.Fatal(http.ListenAndServe(port, nil))
 }
